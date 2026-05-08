@@ -1,6 +1,6 @@
 {
   "name": "codex-stats",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Dedicated monitor dashboard for Codex subscription usage and OpenAI API costs",
   "author": "erich + codex",
   "repository": {
