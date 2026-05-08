@@ -1,0 +1,87 @@
+{
+  "name": "codex-stats",
+  "version": "0.1.0",
+  "description": "Dedicated monitor dashboard for Codex subscription usage and OpenAI API costs",
+  "author": "erich + codex",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/kynetic29/codex-stats.git"
+  },
+  "homepage": "https://github.com/kynetic29/codex-stats#readme",
+  "bugs": {
+    "url": "https://github.com/kynetic29/codex-stats/issues"
+  },
+  "main": "electron/main.js",
+  "scripts": {
+    "dev:vite": "vite build --watch",
+    "dev:electron": "wait-on dist/src/dashboard/index.html && electron .",
+    "dev": "concurrently \"npm run dev:vite\" \"npm run dev:electron\"",
+    "build": "vite build",
+    "package": "vite build && electron-builder",
+    "release": "vite build && electron-builder --publish always",
+    "version:patch": "npm version patch",
+    "version:minor": "npm version minor",
+    "version:major": "npm version major",
+    "start": "electron .",
+    "rebuild": "electron-rebuild -f -w better-sqlite3",
+    "postinstall": "electron-rebuild -f -w better-sqlite3",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.8.0",
+    "electron-updater": "^6.3.9",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0",
+    "recharts": "^2.12.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.0.3",
+    "@vitejs/plugin-react": "^6.0.1",
+    "concurrently": "^9.0.0",
+    "electron": "^41.1.1",
+    "electron-builder": "^26.8.1",
+    "vite": "^8.0.5",
+    "vitest": "^3.2.4",
+    "wait-on": "^8.0.0"
+  },
+  "build": {
+    "appId": "com.codexstats.app",
+    "productName": "CodexStats",
+    "directories": {
+      "buildResources": "build",
+      "output": "release"
+    },
+    "artifactName": "${productName}-Setup-${version}.${ext}",
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "kynetic29",
+        "repo": "codex-stats"
+      }
+    ],
+    "forceCodeSigning": false,
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.ico"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "installerIcon": "build/icon.ico",
+      "uninstallerIcon": "build/icon.ico"
+    },
+    "mac": {
+      "target": "dmg",
+      "icon": "build/icon.png"
+    },
+    "linux": {
+      "target": "AppImage",
+      "icon": "build/icon.png"
+    }
+  }
+}
