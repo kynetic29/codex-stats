@@ -1,6 +1,6 @@
 const { getCurrentSession, getTokensInWindow, getEarliestRequestInWindow, getLimitEstimates, getLatestRateLimit } = require('./db')
 const { getTimeUntilRollingReset } = require('./limit-estimator')
-const { getLiveSnapshotWindowMs, isLiveSnapshotFresh } = require('./rate-limit-snapshot')
+const { getLiveSnapshotWindowMs, isLiveSnapshotPercentFresh, isLiveSnapshotResetValid } = require('./rate-limit-snapshot')
 
 const FIVE_HOURS_MS = 5 * 60 * 60 * 1000
 const BURN_WINDOW_MS = 15 * 60 * 1000
@@ -56,10 +56,12 @@ function getSessionStatus() {
     }
   }
 
-  if (isLiveSnapshotFresh(latestSnapshot, 'primary_pct', 'primary_resets_at', 'primary_window_minutes', FIVE_HOURS_MS)) {
+  if (isLiveSnapshotPercentFresh(latestSnapshot, 'primary_pct', 'primary_window_minutes', FIVE_HOURS_MS)) {
     const derivedLimit = latestSnapshot.primary_pct > 0
       ? totals.total_tokens * 100 / latestSnapshot.primary_pct
       : 0
+    const hasLiveReset = isLiveSnapshotResetValid(latestSnapshot, 'primary_resets_at')
+    const localResetAt = earliestInWindow ? earliestInWindow + windowMs : null
 
     return {
       active: currentSession ? currentSession.is_active === 1 : false,
@@ -76,8 +78,8 @@ function getSessionStatus() {
       startedAt: earliestInWindow,
       lastRequestAt: currentSession?.last_request_at || latestSnapshot.timestamp,
       elapsedMs: earliestInWindow ? Date.now() - earliestInWindow : 0,
-      remainingMs: Math.max(0, latestSnapshot.primary_resets_at - Date.now()),
-      windowResetAt: latestSnapshot.primary_resets_at,
+      remainingMs: hasLiveReset ? Math.max(0, latestSnapshot.primary_resets_at - Date.now()) : getTimeUntilRollingReset(windowMs),
+      windowResetAt: hasLiveReset ? latestSnapshot.primary_resets_at : localResetAt,
       pct: latestSnapshot.primary_pct,
       estimatedLimit: derivedLimit || null,
       confidence: 1,

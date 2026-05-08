@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-const { getLiveSnapshotWindowMs, isLiveSnapshotFresh } = require('./rate-limit-snapshot')
+const {
+  getLiveSnapshotWindowMs,
+  isLiveSnapshotFresh,
+  isLiveSnapshotPercentFresh,
+  isLiveSnapshotResetValid,
+} = require('./rate-limit-snapshot')
 
 describe('rate-limit snapshot freshness', () => {
   it('uses the snapshot window length when present', () => {
@@ -11,22 +16,30 @@ describe('rate-limit snapshot freshness', () => {
     expect(getLiveSnapshotWindowMs({}, 'primary_window_minutes', 300 * 60 * 1000)).toBe(300 * 60 * 1000)
   })
 
-  it('rejects expired or stale live snapshots', () => {
+  it('rejects stale live percentages', () => {
     const now = Date.UTC(2026, 3, 25, 11, 0, 0)
 
-    expect(isLiveSnapshotFresh({
+    expect(isLiveSnapshotPercentFresh({
       timestamp: now - (6 * 60 * 60 * 1000),
       primary_pct: 61,
       primary_resets_at: now + (30 * 60 * 1000),
       primary_window_minutes: 300,
-    }, 'primary_pct', 'primary_resets_at', 'primary_window_minutes', 300 * 60 * 1000, now)).toBe(false)
+    }, 'primary_pct', 'primary_window_minutes', 300 * 60 * 1000, now)).toBe(false)
+  })
 
-    expect(isLiveSnapshotFresh({
+  it('treats reset validity separately from percentage freshness', () => {
+    const now = Date.UTC(2026, 3, 25, 11, 0, 0)
+
+    const snapshot = {
       timestamp: now - (10 * 60 * 1000),
       primary_pct: 61,
       primary_resets_at: now - 1,
       primary_window_minutes: 300,
-    }, 'primary_pct', 'primary_resets_at', 'primary_window_minutes', 300 * 60 * 1000, now)).toBe(false)
+    }
+
+    expect(isLiveSnapshotPercentFresh(snapshot, 'primary_pct', 'primary_window_minutes', 300 * 60 * 1000, now)).toBe(true)
+    expect(isLiveSnapshotResetValid(snapshot, 'primary_resets_at', now)).toBe(false)
+    expect(isLiveSnapshotFresh(snapshot, 'primary_pct', 'primary_resets_at', 'primary_window_minutes', 300 * 60 * 1000, now)).toBe(false)
   })
 
   it('accepts fresh live snapshots inside the current window', () => {

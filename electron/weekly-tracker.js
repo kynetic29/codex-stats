@@ -1,7 +1,7 @@
 const { getTokensInWindow, getRequestCountToday, getLimitEstimates, getLatestRateLimit } = require('./db')
 const { getTimeUntilRollingReset } = require('./limit-estimator')
 const { computeBurnRate, computeEta } = require('./session-tracker')
-const { getLiveSnapshotWindowMs, isLiveSnapshotFresh } = require('./rate-limit-snapshot')
+const { getLiveSnapshotWindowMs, isLiveSnapshotPercentFresh, isLiveSnapshotResetValid } = require('./rate-limit-snapshot')
 
 const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000
 
@@ -14,10 +14,11 @@ function getWeeklyStatus() {
   todayStart.setHours(0, 0, 0, 0)
   const burnRate = computeBurnRate()
 
-  if (isLiveSnapshotFresh(latestSnapshot, 'secondary_pct', 'secondary_resets_at', 'secondary_window_minutes', SEVEN_DAYS_MS)) {
+  if (isLiveSnapshotPercentFresh(latestSnapshot, 'secondary_pct', 'secondary_window_minutes', SEVEN_DAYS_MS)) {
     const derivedLimit = latestSnapshot.secondary_pct > 0
       ? totals.total_tokens * 100 / latestSnapshot.secondary_pct
       : 0
+    const hasLiveReset = isLiveSnapshotResetValid(latestSnapshot, 'secondary_resets_at')
 
     return {
       tokens: totals.total_tokens,
@@ -32,7 +33,7 @@ function getWeeklyStatus() {
       pct: latestSnapshot.secondary_pct,
       estimatedLimit: derivedLimit || null,
       confidence: 1,
-      resetIn: Math.max(0, latestSnapshot.secondary_resets_at - Date.now()),
+      resetIn: hasLiveReset ? Math.max(0, latestSnapshot.secondary_resets_at - Date.now()) : getTimeUntilRollingReset(windowMs || SEVEN_DAYS_MS),
       weekStart: windowStart,
       source: 'codex-live',
       eta: computeEta(totals.total_tokens, derivedLimit, burnRate),

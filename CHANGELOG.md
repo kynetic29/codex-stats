@@ -2,6 +2,13 @@
 
 All notable changes to CodexStats are documented here.
 
+## [0.1.1] - 2026-05-08
+
+### Fixed
+
+- Keep the 5-hour gauge live when Codex emits a fresh usage percentage with a stale or missing reset timestamp.
+- Fall back to local reset countdowns independently from live percentage freshness.
+
 ## [0.1.0] - 2026-05-08
 
 ### Added
